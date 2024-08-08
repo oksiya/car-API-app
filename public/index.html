@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car API</title>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+    <div x-data="carApp()" class="container mx-auto p-6">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl font-bold">Car API</h1>
+        </header>
+
+        <div class="flex justify-center mb-6 space-x-4">
+            <button @click="fetchMostPopularCar" class="bg-blue-500 text-white py-2 px-4 rounded-lg shadow-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 transition duration-300">
+                Get Most Popular Car Make
+            </button>
+            <button @click="fetchAllCars" class="bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300 transition duration-300">
+                Get All Cars
+            </button>
+        </div>
+
+        <div x-show="mostPopularCar" class="text-center mb-6">
+            <p class="text-xl font-semibold">Most Popular Car Make:</p>
+            <div x-text="mostPopularCar" class="text-2xl font-bold text-white mt-2 bg-pink-200 p-4 shadow rounded"></div>
+        </div>
+
+        <div class="flex justify-center mb-6">
+            <div class="bg-pink-200 p-4 shadow rounded">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 text-center">Add a New Car</h2>
+                <form @submit.prevent="addCar" class="space-y-4">
+                    <input x-model="newCar.color" type="text" placeholder="Color" class="border p-2 rounded w-full" required>
+                    <input x-model="newCar.make" type="text" placeholder="Make" class="border p-2 rounded w-full" required>
+                    <input x-model="newCar.model" type="text" placeholder="Model" class="border p-2 rounded w-full" required>
+                    <input x-model="newCar.reg_number" type="text" placeholder="Registration Number" class="border p-2 rounded w-full" required>
+                    <button type="submit" class="bg-purple-500 text-white py-2 px-4 rounded-lg shadow-lg hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-300 transition duration-300">
+                        Add Car
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+
+        <div x-show="cars.length > 0" class="mt-6 bg-pink-200 p-4 shadow rounded">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">All Cars</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="car in cars" :key="car.reg_number">
+                    <div class="bg-white shadow-lg rounded-lg p-4">
+                        <h3 class="text-lg font-bold text-gray-800">Make: <span x-text="car.make"></span></h3>
+                        <p class="text-gray-600">Model: <span x-text="car.model"></span></p>
+                        <p class="text-gray-600">Color: <span x-text="car.color"></span></p>
+                        <p class="text-gray-600">Registration Number: <span x-text="car.reg_number"></span></p>
+                        <div class="mt-4 flex justify-end space-x-2">
+                            <button @click="editCar(car)" class="bg-yellow-500 text-white py-1 px-2 rounded-lg shadow-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-300 transition duration-300">
+                                Edit
+                            </button>
+                            <button @click="deleteCar(car.reg_number)" class="bg-red-500 text-white py-1 px-2 rounded-lg shadow-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition duration-300">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Edit Car Modal -->
+        <div x-show="editMode" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-1/2">
+                <h2 class="text-xl font-semibold mb-4">Edit Car</h2>
+                <form @submit.prevent="updateCar" class="space-y-4">
+                    <input x-model="selectedCar.color" type="text" placeholder="Color" class="border p-2 rounded w-full" required>
+                    <input x-model="selectedCar.make" type="text" placeholder="Make" class="border p-2 rounded w-full" required>
+                    <input x-model="selectedCar.model" type="text" placeholder="Model" class="border p-2 rounded w-full" required>
+                    <input x-model="selectedCar.reg_number" type="text" placeholder="Registration Number" class="border p-2 rounded w-full" required>
+                    <div class="flex justify-end space-x-2">
+                        <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300 transition duration-300">
+                            Update Car
+                        </button>
+                        <button @click="editMode = false" type="button" class="bg-gray-500 text-white py-2 px-4 rounded-lg shadow-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 transition duration-300">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function carApp() {
+            return {
+                mostPopularCar: '',
+                cars: [],
+                newCar: {
+                    color: '',
+                    make: '',
+                    model: '',
+                    reg_number: ''
+                },
+                selectedCar: {},
+                editMode: false,
+
+                async fetchMostPopularCar() {
+                    try {
+                        const response = await axios.get('http://localhost:3007/api/mostPopularCar');
+                        this.mostPopularCar = response.data.mostPopularCar;
+                    } catch (error) {
+                        console.error('Error fetching data', error);
+                    }
+                },
+
+                async fetchAllCars() {
+                    try {
+                        const response = await axios.get('http://localhost:3007/api/cars');
+                        this.cars = response.data;
+                    } catch (error) {
+                        console.error('Error fetching data', error);
+                    }
+                },
+
+                async addCar() {
+          
+                },
+
+                async updateCar() {
+              
+                },
+
+                async deleteCar(reg_number) {
+                
+                },
+
+                editCar(car) {
+                    this.selectedCar = { ...car };
+                    this.editMode = true;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

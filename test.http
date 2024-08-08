@@ -1,0 +1,13 @@
+GET https://bootcamp.projectcodex.co/cars.json HTTP/1.1
+content-type: application/json
+
+###
+
+GET http://localhost:3007/api/mostPopularCar HTTP/1.1
+content-type: application/json
+
+###
+
+DELETE   http://localhost:3007/api/cars/CL 61045 HTTP/1.1
+content-type: application/json
+
